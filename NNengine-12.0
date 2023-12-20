@@ -1,0 +1,199 @@
+#Feed Forward Neural Network Simulation Software
+by Andreas Hadjiprocopis 1995 to present.
+-----------------------------------------------
+Here is my trusted Feed Forward Neural Network library
+and executables which has got me out of my PhD victorious
+and proud. It has acquired quite a lot of features over
+the years. It is written in C for the benefit
+of efficient execution. There are stand-alone
+executables in here, so you do not need to
+create your own using the library.
+
+# build instructions:
+The preferred way to install is to dowmload the tarball distribtution
+from this repository (https://raw.githubusercontent.com/hadjiprocopis/NNengine/master/NNengine-12.0.tar.gz).
+```
+tar xvzf NNengine-12.0.tar.gz
+cd NNengine-12.0
+./bootstrap.sh
+./configure && make clean && make all
+
+# How to use the library (and the provided executables)
+
+The package consists of a library of FFNN routines
+contained in 'CreateBPNetwork.c' and 'OperateBPNetwork.c'.
+
+These routines can be used to train and test (an already trained)
+neural network. Two example programs that do that are 'NNengine.c'
+for training the net and 'ForwardPass.c' to test a trained net
+(Forward pass is the process by which a set of input vectors
+is fed in the neural net in order to obtain an output vector).
+
+The 2 example programs have a given command line parameter set
+that suits me and which you can change easily.
+
+The NNengine.c is made so that one can send SIGUSR1 and SIGUSR2,
+SIGRTMIN and INT
+signals, using 'kill -USR1 or -USR2 or -9 pid' from the unix
+prompt. 'pid' refers to the process id of the NNengine and can be
+found in 3 ways:
+1) ps -axu | egrep NNengine (-elf is equivalent to -axu in some other unix systems).
+2) a file NNengine.pid is created in the directory running 'NNengine' and
+   contains this pid.
+3) NNengine tells you its pid when it starts.
+
+SIGUSR1 and SIGUSR2 are used to decrease and increase the rate of learning
+parameter (beta) during run time by a constant amount. Of course, one
+can write a new NNengine.c program which changes momentum (lamda) instead
+or do some other things. Unfortunately there are only 2 signals that are
+used defined, so only 2 actions can be performed.
+
+The SIGRTMIN will cause the application to save the weights at that specific
+time during training and continue with its training.
+
+The SIGINT singal can be sent as kill -9 pid or a Control-C when the application
+is running in the foreground. This action will cause the program to
+stop training, save the weights and exit. So if you specify 10000 iterations
+in the beginning but you find satisfactory error at 2000 iterations you
+can Control-C the the program terminates as it would have if you specified
+2000 iters from the beginning.
+
+Further, if you have X and tcl, you can run the tcl script NNChange.tcl
+(within the directory that NNengine runs and, thus, NNengine.pid resides).
+This script will find the id of the NNengine process and will send the
+aforementioned signals when you press the buttons. It can also
+automate the procedure by sending the prescribed signal for a specified
+amount of times pausing some time in between (option is 'Auto').
+
+EXAMPLE:
+Let's do a quick example.
+Suppose you have a training set in the file 'training.data' which reads
+as follows:
+1 2 1   0.32
+2 1 1   0.21
+-1 2 1  0.12
+e.g. 3 training vectors of 3 inputs and the desired output
+(the fourth column) each.
+
+Suppose you have a test set in the file 'test.data' which reads
+as follows:
+1 2 1
+2 1 1
+-1 2 1
+e.g. 3 test vectors of 3 inputs each. Notice, there is no 4th column.
+
+In order to train a 3x2x1 network (3 inputs, 1 hidden layer of
+2 units and 1 output) for 500 iterations do:
+NNengine -input training.data -weights myWeights -arch 3 2 1 -iters 500
+
+[ If you want to use sigmoid function at the output use the
+  '-sigmoid' parameter ]
+[ Hint: if you type NNengine -usage you will get all available options]
+
+you get:
+NNengine: pid is 1082
+TOTAL MEMORY ALLOCATED = 1040 bytes
+TRAINING STAGE
+ERROR(25) = 0.1007263, dE = 0.0017967, ddE = 0.0000585
+ERROR(50) = 0.0701654, dE = 0.0008190, ddE = 0.0000258
+...
+...
+ERROR(500) = 0.056939, dE = 0.0000099, ddE = 0.0000000
+SAVING WEIGHTS
+TESTING STAGE
+      INPUTS       EXPECT ACTUAL
+1.000 2.000 1.000  <0.320 > <0.235 >
+2.000 1.000 1.000  <0.210 > <0.256 >
+-1.000 2.000 1.000  <0.120 > <0.137 >
+
+ITERATIONS = (500), 500, EXEMPLARS = 3
+BETA = 0.090000, LAMDA = 0.000000
+FINAL ERROR = 0.056939
+FFNN ARCHITECTURE = 3 2 1
+TOTAL MEMORY ALLOCATED = 1040 bytes
+Output (Network) Type is Continuous, Training was Continuous
+
+The first line is the process id of the NNengine, so you
+can send signals to it and increase or decrease beta at runtime.
+next line talks about how much memory is used and then
+a monitor of the training process starts (Every 25 iterations you get
+a reading).
+the first floating point number is the error.
+the second is the rate of change of the error
+the third is the rate of the rate of change.
+
+At the end, it saves the weights and passes all the input vectors
+through the trained network:
+TESTING STAGE
+      INPUTS       EXPECT ACTUAL
+1.000 2.000 1.000  <0.320 > <0.235 >
+|-----inputs-----| expected   actual
+                   output     output
+
+Also, further down you see what your learning rate (beta)
+and momentum (lamda) as well as the architecture and final error
+were.
+
+That was the training stage.
+
+For the test stage you will use the command 'ForwardPass'
+[ again ForwardPass -usage  will output all the available options ]
+Continuing with the above, in order to test the NN with the 
+trained weights in the file 'myWeights' and the test patterns in the
+file 'test.data', do:
+ForwardPass -input test.data -weights myWeights -arch 3 2 1
+
+The output is sent to the standard output and is the neural network
+output for each test vector in the input file.
+e.g. you will get:
+0.258583 
+0.247090 
+0.135350 
+If you used the option '-show' you will also get the input vectors too:
+ForwardPass -input test.data -weights myWeights -arch 3 2 1 -show
+you get:
+1.000 2.000 1.000       0.258583 
+2.000 1.000 1.000       0.247090 
+-1.000 2.000 1.000      0.135350 
+
+Now, this program can also calculate the partial derivatives of
+the NN transfer function with respect to each of the input vectors.
+Note that this is just a numerical value, not an analytical expression.
+If you want to see the theory behind this partial derivatives
+calculation then read:
+```
+http://nfkb.scienceontheweb.net/various/andreas_hadjiprocopis_phd_FFNNEntities_2000.pdf
+```
+(specifically chapter 5)
+
+So, you can calculate these derivatives using:
+ForwardPass -input test.data -weights myWeights -arch 3 2 1 -derivatives
+you get:
+0.011426 0.017226 -0.011310 
+0.009957 0.010094 -0.005294 
+0.011833 0.020606 -0.014278 
+
+[ Note these numbers will be different when you run and rerun because
+  weights are initialised at random, thus every run will end in different
+  optima. Use the NNengine option '-seed a_seed' where a_seed is a small
+  integer, so that random number generator is initialised using that seed.
+  As you might know initialising a random number generator with the same
+  seed, will yield the same random number sequences, thus weights will
+  be initialised to the same values every time, so you can have some
+  controlled environment ]
+
+So, each line of the derivatives has 3 columns. The first line refers
+to the first line of the input vector. The first column is the
+partial derivative of the output w.r.t. the first input, the second
+column w.r.t. the second input and so on.
+
+
+Further documentation about the library routines may be found in the
+source code files.
+
+This is my work. You can use and distribute it as you wish but NOT
+for commercial purposes. Use it at your own risk!
+
+author: Andreas Hadjiprocopis<br/>
+andreashad2@gmail.comn (ex livantes@soi.city.ac.uk)<br/>
+http://nfkb.scienceontheweb.net (ex http://soi.city.ac.uk/~livantes)<br/>
